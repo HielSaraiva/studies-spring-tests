@@ -1,6 +1,7 @@
 package org.example.studiesspringtests.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 @Entity
@@ -9,10 +10,18 @@ import lombok.Data;
 public class Planet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
+    @NotEmpty
+    @Column(nullable = false, unique = true)
     private String name;
+
+    @NotEmpty
+    @Column(nullable = false)
     private String climate;
+
+    @NotEmpty
+    @Column(nullable = false)
     private String terrain;
 
     public Planet(String name, String climate, String terrain) {
