@@ -1,5 +1,6 @@
 package org.example.studiesspringtests.web;
 
+import jakarta.validation.Valid;
 import org.example.studiesspringtests.domain.Planet;
 import org.example.studiesspringtests.domain.PlanetService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ public class PlanetController {
     private PlanetService planetService;
 
     @PostMapping
-    public ResponseEntity<Planet> create(@RequestBody Planet planet) {
+    public ResponseEntity<Planet> create(@RequestBody @Valid Planet planet) {
         Planet planetCreated = planetService.create(planet);
         return ResponseEntity.status(HttpStatus.CREATED).body(planetCreated);
     }
