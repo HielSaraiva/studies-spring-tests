@@ -1,8 +1,8 @@
 package org.example.studiesspringtests.web;
 
-import static org.example.studiesspringtests.common.PlanetConstants.PLANET;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.example.studiesspringtests.common.PlanetConstants.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,11 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @WebMvcTest(PlanetController.class)
@@ -99,6 +102,49 @@ public class PlanetControllerTest {
     @DisplayName("Dado um nome de planeta inexistente, quando buscado, então deve retornar status 404")
     public void getPlanet_byUnexistingName_returnsNotFound() throws Exception{
         mockMvc.perform(get("/planets/name/1"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Dado planetas cadastrados, quando consulto a listagem com filtros, então deve retornar apenas os planetas correspondentes")
+    public void listPlanets_returnsFilteredPlanets() throws Exception{
+        when(planetService.list(null, null)).thenReturn(PLANETS);
+        when(planetService.list(TATOOINE.getTerrain(), TATOOINE.getClimate())).thenReturn(List.of(TATOOINE));
+
+        mockMvc.perform(get("/planets"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(3)));
+
+        mockMvc.perform(get("/planets?" + String.format("terrain=%s&climate=%s", TATOOINE.getTerrain(), TATOOINE.getClimate())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0]").value(TATOOINE));
+    }
+
+    @Test
+    @DisplayName("Dado que não existem planetas cadastrados, quando consulto a listagem, então deve retornar lista vazia")
+    public void listPlanets_returnsNoPlanets() throws Exception{
+        when(planetService.list(null, null)).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/planets"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("Dado um planeta existente, quando removo pelo ID, então deve retornar status 204")
+    public void removePlanets_withExistingId_removesPlanetFromDatabase() throws Exception{
+        mockMvc.perform(delete("/planets/1"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Dado um ID de planeta inexistente, quando tento remover, então deve retornar status 404")
+    public void removePlanets_withUnexistingId_throwsException() throws Exception{
+        final Long planetId = 1L;
+        doThrow(new EmptyResultDataAccessException(1)).when(planetService).remove(planetId);
+
+        mockMvc.perform(delete("/planets/1"))
                 .andExpect(status().isNotFound());
     }
 }
